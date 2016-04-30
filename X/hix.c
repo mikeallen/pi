@@ -15,7 +15,7 @@ typedef struct {
 typedef struct {
     int time;
     int numPoints;
-    DPPaintToPoint points[100]; // should use [] - but would need to change my code to malloc ... so set an arbitrary max of 100  !
+    DPPaintToPoint points[100]; // should use [] - but would need to change my code to malloc ... so set an arbitrary max of 100  !!
 } Frame;
 
 #define MAX_X 400
