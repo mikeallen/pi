@@ -337,6 +337,8 @@ git push
 
 on remote machine, sync up before you do changes
 git pull
+git status #ensure I am in sync - if local copy is newer it wont say anything
+git checkout <file> # to discard my local copy and use that from the repo
 
 #######
  TO DO
