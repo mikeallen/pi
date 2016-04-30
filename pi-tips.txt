@@ -1,0 +1,352 @@
+Pi tips
+
+#########################################
+USING A MAC TO MAKE A BOOTABLE PI SD CARD
+#########################################
+
+Mikes-MacBook-Air:Movies mike$ diskutil list
+/dev/disk0 (internal, physical):
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:      GUID_partition_scheme                        *251.0 GB   disk0
+   1:                        EFI EFI                     209.7 MB   disk0s1
+   2:          Apple_CoreStorage Macintosh HD            250.1 GB   disk0s2
+   3:                 Apple_Boot Recovery HD             650.0 MB   disk0s3
+/dev/disk1 (internal, virtual):
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:                  Apple_HFS Macintosh HD           +249.8 GB   disk1
+                                 Logical Volume on disk0s2
+                                 B05FDECF-5538-477B-8FF8-88D8870005BE
+                                 Unlocked Encrypted
+/dev/disk2 (internal, physical):
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:     FDisk_partition_scheme                        *15.8 GB    disk2
+   1:             Windows_FAT_32 NO NAME                 15.8 GB    disk2s1
+
+Mikes-MacBook-Air:Movies mike$ diskutil unmountDisk /dev/disk2
+Unmount of all volumes on disk2 was successful
+
+Mikes-MacBook-Air:Movies mike$ sudo dd bs=1m if=2016-03-18-raspbian-jessie.img of=/dev/rdisk2
+
+(Control T - to check status - 1 record = 1 MB, file is 4GB, so it’ll take till it gets to 4,000)
+
+sudo diskutil eject /dev/rdisk2
+
+[ See https://www.raspberrypi.org/documentation/installation/installing-images/mac.md]
+[ SD card write protect tab has to be forward - towards connector to be r/w]
+
+
+########################################
+CONNECTING TO PI FROM A MAC VIA ETHERNET
+########################################
+
+Connect up & power on
+
+– System Preferences -> Sharing -> Internet Sharing to Ethernet
+– Connect Raspberry Pi to Mac’s Ethernet port
+– SSH pi@192.168.2.2 (usually, else use ‘arp -a’ to get a list of IPs)
+yes
+(for a new machine, need to edit ~/.ssh/known_hosts to delete old reference)
+
+pi@raspberrypi:~ $ uname -a
+Linux raspberrypi 4.1.19+ #858 Tue Mar 15 15:52:03 GMT 2016 armv6l GNU/Linux
+
+############################
+MAKE THE SD PARTITION BIGGER 
+############################
+
+Raspbian: how to resize the root partition to fill SD card
+$ sudo raspi-config
+
+BEFORE filesystem expand:
+pi@raspberrypi:~ $ df
+Filesystem     1K-blocks    Used Available Use% Mounted on
+/dev/root        3747352 3471080     66200  99% /
+devtmpfs          218296       0    218296   0% /dev
+tmpfs             222568       0    222568   0% /dev/shm
+tmpfs             222568    4528    218040   3% /run
+tmpfs               5120       4      5116   1% /run/lock
+tmpfs             222568       0    222568   0% /sys/fs/cgroup
+/dev/mmcblk0p1     61384   26896     34488  44% /boot
+tmpfs              44516       0     44516   0% /run/user/1000
+
+AFTER
+pi@raspberrypi:~ $ df
+Filesystem     1K-blocks    Used Available Use% Mounted on
+/dev/root       15070440 3473080  10929576  25% /
+devtmpfs          218296       0    218296   0% /dev
+tmpfs             222568       0    222568   0% /dev/shm
+tmpfs             222568    4532    218036   3% /run
+tmpfs               5120       4      5116   1% /run/lock
+tmpfs             222568       0    222568   0% /sys/fs/cgroup
+/dev/mmcblk0p1     61384   26896     34488  44% /boot
+tmpfs              44516       0     44516   0% /run/user/1000
+
+# Free up more space (purge is more than remove as it gets rid of config files too 
+sudo apt-get purge wolfram-engine libreoffice* minecraft-pi sonic-pi
+sudo apt-get clean
+sudo apt-get autoremove # get rid of unused dependencies
+
+#############################
+CROSS COMPILING THE RT KERNEL 
+#############################
+
+http://www.frank-durr.de/?p=203
+(note tools is not linux kernel tools directory - make one in your home dir)
+make sure you mod to add -x86 in here:
+export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
+
+
+TESTING RT KERNEL
+————————
+
+runtest.sh
+
+#/bin/bash
+sudo ./cyclictest -m -t1 -p 80 -n -i 500 -l 100000
+
+result w RT_PREEMPT
+pi@raspberrypi:~/rt-tests $ uname -a
+Linux raspberrypi 4.1.21-rt23 #1 PREEMPT RT Sat Apr 23 05:23:34 UTC 2016 armv6l GNU/Linux
+
+T: 0 (  784) P:80 I:500 C:  54350 Min:     20 Act:   45 Avg:   38 Max:      98
+
+pi@raspberrypi:~/rt-tests $ ./runtest.sh ## with ping and cat>/devnull bombardment
+# /dev/cpu_dma_latency set to 0us
+policy: fifo: loadavg: 0.98 0.65 0.26 2/150 798          
+
+T: 0 (  798) P:80 I:500 C:  20896 Min:     28 Act:   46 Avg:   43 Max:      96
+
+WITHOUT
+pi@raspberrypi:~/rt-tests $ uname -a
+Linux raspberrypi 4.1.19+ #858 Tue Mar 15 15:52:03 GMT 2016 armv6l GNU/Linux
+(or 4.1.19-v7+ #858 - after apt-get update; apt-get dist-upgrade)
+
+pi@raspberrypi:~/rt-tests $ ./runtest.sh 
+# /dev/cpu_dma_latency set to 0us
+policy: fifo: loadavg: 0.58 0.69 0.40 1/125 1012          
+
+T: 0 ( 1012) P:80 I:500 C:  16453 Min:     18 Act:   43 Avg:   44 Max:     328
+
+
++ with bombardment
+pi@raspberrypi:~/rt-tests $ ./runtest.sh 
+# /dev/cpu_dma_latency set to 0us
+policy: fifo: loadavg: 0.75 0.68 0.43 2/129 1053          
+
+T: 0 ( 1053) P:80 I:500 C:  28576 Min:     24 Act:   25 Avg:   49 Max:     752
+
+##############
+PI 3 SPECIFICS
+##############
+
+upgrade from PI Model B -> Pi 3
+on old machine run:
+sudo apt-get update
+sudo apt-get dist-upgrade
+
+before unmet = 4.1.19+ #858; after uname = SAME
+
+Hmm - DIDN’T WORK
+
+—
+Note: to setup wireless on PI 3
+sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
+ifconfig wlan0 	       # to test
+-
+Going to Pi2 worked fine. Just needed to switch to connect to 192.168.2.4 - no idea why 
+
+
+############################
+WHICH VERSION PI DO YOU HAVE
+############################
+
+https://www.element14.com/community/docs/DOC-78141/l/identifying-your-model-of-raspberry-pi
+000f	Q4 2012	B	2.0	512 MB	(Mfg by Qisda)
+Raspberry Pi Model B (Rev 2.0, 512Mb): 000d, 000e, 000f
+
+http://www.raspberry-projects.com/pi/pi-hardware/raspberry-pi-model-b/model-b-io-pins
+
+
+####################
+EVERYTHING ABOUT SPI
+####################
+
+SPI - see https://www.raspberrypi.org/documentation/hardware/raspberrypi/spi/README.md
+
+================
+IS SPI INSTALLED
+================
+
+more /etc/modprobe.d/raspi-blacklist.conf
+#blacklist spi-bcm2708
+
+lsmod 		# and look for spi_bcm2835 
+
+pi@raspberrypi:~/wiringPi $ ls /dev/spi*
+/dev/spidev0.0  /dev/spidev0.1
+
+# Write binary 1, 2 and 3
+echo -ne "\x01\x02\x03" > /dev/spidev0.0
+
+gpio readall
+
+========
+SPI TEST
+========
+
+pi@raspberrypi:~ $ mkdir spi-tests
+pi@raspberrypi:~ $ cd spi-tests/
+pi@raspberrypi:~/spi-tests $ wget https://raw.githubusercontent.com/raspberrypi/linux/rpi-3.10.y/Documentation/spi/spidev_test.c
+pi@raspberrypi:~/spi-tests $ gcc -o spidev_test spidev_test.c
+
+more /usr/include/linux/spi/spidev.h
+
+pi@raspberrypi:~/spi-tests $ ./spidev_test -D /dev/spidev0.0
+
+- connect MISO to MOSI for loopback and look for 
+spi mode: 0
+bits per word: 8
+max speed: 500000 Hz (500 KHz)
+
+FF FF FF FF FF FF
+40 00 00 00 00 95
+FF FF FF FF FF FF
+FF FF FF FF FF FF
+FF FF FF FF FF FF
+DE AD BE EF BA AD
+F0 0D
+
+
+========
+WiringPI
+========
+
+git clone git://git.drogon.net/wiringPi
+
+##If you have already used the clone operation for the first time, then
+##cd wiringPi
+##git pull origin
+Will fetch an updated version then you can re-run the build script below.
+
+To build/install there is a new simplified script:
+cd wiringPi
+./build
+
+gpio -v
+gpio readall
+
+NOTE: To compile programs with wiringPi, you need to add:
+    -lwiringPi
+  to your compile line(s) To use the Gertboard, MaxDetect, etc.
+  code (the devLib), you need to also add:
+    -lwiringPiDev
+  to your compile line(s).
+
+=====
+
+The kernel still uses the old table. The new table will be used at the next reboot or after you run partprobe(8) or kpartx(8).
+
+modprobe: ERROR: could not insert 'spi_bcm2708': No such device
+
+
+##############
+SPI REFERENCES
+##############
+
+
+SPI
+https://en.wikipedia.org/wiki/Serial_Peripheral_Interface_Bus
+https://www.raspberrypi.org/documentation/hardware/raspberrypi/spi/README.md
+https://www.raspberrypi.org/magpi-issues/MagPi07.pdf
+https://learn.adafruit.com/downloads/pdf/adafruits-raspberry-pi-lesson-4-gpio-setup.pdf
+
+WiringPi
+http://wiringpi.com/reference/spi-library/
+https://projects.drogon.net/understanding-spi-on-the-raspberry-pi/
+
+SPI with BCM2835 library by Mike McCauley - vs RAW Linux SPI
+http://www.raspberry-projects.com/pi/programming-in-c/spi/using-the-spi-interface
+http://elinux.org/RPi_GPIO_Code_Samples
+http://www.airspayce.com/mikem/bcm2835/
+
+RAW (in C++) ref’ed above
+http://hertaville.com/2013/07/24/interfacing-an-spi-adc-mcp3008-chip-to-the-raspberry-pi-using-c/
+RAW (with spi loopback test example I tried)
+http://armbedded.eu/node/318
+
+More - looking at the different libraries
+http://elinux.org/RPi_GPIO_Code_Samples
+http://codeandlife.com/2012/07/03/benchmarking-raspberry-pi-gpio-speed/
+
+Driver from Scratch
+https://www.raspberrypi.org/magpi-issues/MagPi24.pdf
+https://github.com/digibird1/RPiScope/blob/master/KernelMod/Scope-drv.c
+
+##############
+Serial Console
+##############
+ 
+Get latest driver for 
+PL2303 Mac OS X 
+
+On Orig model & 3b
+Black is GND (3rd from end - outside)
+White goes to TX (4th from end - outside)
+Green goes to RX (5th from end - outside)
+Don’t connect Red
+
+$ ls /dev/tty.usb*
+/dev/tty.usbserial
+
+$ screen /dev/cu.usbserial 115200
+
+For Pi 3 Model b — f’ed
+https://github.com/raspberrypi/firmware/issues/553
+
+You might notice that each serial device shows up twice in /dev, once as a tty.* and once as a cu.*. So, what's the difference? Well, TTY devices are for calling into UNIX systems, whereas CU (Call-Up) devices are for calling out from them (eg, modems). We want to call-out from our Mac, so /dev/cu.* is the correct device to use.
+
+The technical difference is that /dev/tty.* devices will wait (or listen) for DCD (data-carrier-detect), eg, someone calling in, before responding. /dev/cu.* devices do not assert DCD, so they will always connect (respond or succeed) immediately.
+
+################
+ X WINDOWS TIPS
+################
+
+1. mac side
+install: http://www.xquartz.org/
+2. logout/log in
+echo $DISPLAY
+/private/tmp/com.apple.launchd.BGe9YA1nKH/org.macosforge.xquartz:0
+/usr/X11/bin/xeyes ## to test local
+2. remote from Pi
+ssh -YC pi@192.168.2.4 
+3. on Pi
+sudo apt-get install xorg xutils libx11-dev
+xlogo
+lxsession # for full desktop (but need to install more apt-get packages for this
+
+##########
+ GIT Tips
+##########
+
+git clone http://github.com/mikeallen/pi
+git status
+git add X/build.sh X/hix.c
+after edits
+git commit -am "fixed XYZ”
+git push
+
+on remote machine, sync up before you do changes
+git pull
+
+#######
+ TO DO
+#######
+
+upgrade 2 to rt kernel
+
+
+
+
+
+
+
