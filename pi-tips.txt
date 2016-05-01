@@ -94,6 +94,7 @@ http://www.frank-durr.de/?p=203
 (note tools is not linux kernel tools directory - make one in your home dir)
 make sure you mod to add -x86 in here:
 export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-86/bin/arm-linux-gnueabihf-
 
 
 TESTING RT KERNEL
