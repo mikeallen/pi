@@ -96,6 +96,10 @@ make sure you mod to add -x86 in here:
 export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
 export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-86/bin/arm-linux-gnueabihf-
 
+# ignore make modules - as that is run by make, j4 for 4 cores
+make -j4
+make modules_install
+
 
 TESTING RT KERNEL
 ————————
