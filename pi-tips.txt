@@ -90,16 +90,29 @@ sudo apt-get autoremove # get rid of unused dependencies
 CROSS COMPILING THE RT KERNEL 
 #############################
 
+For Pi 1, follow instructions here:
 http://www.frank-durr.de/?p=203
 (note tools is not linux kernel tools directory - make one in your home dir)
-make sure you mod to add -x86 in here:
-export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-86/bin/arm-linux-gnueabihf-
+For me cross compiling on a macbook air (booted on ubuntu) make sure you mod to add -x64 in the CROSS_COMPILE env setting, as follows:
+export CROSS_COMPILE=~/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-
+
+To make it easy I made a buildenv.sh script
+#!/bin/bash
+# Run as . ./buildenv.sh (rather than ./buildenv.sh - so it doesn't start a child shell)
+export ARCH=arm
+export CROSS_COMPILE=/media/ubuntu/WD160/pi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-
+export INSTALL_MOD_PATH=/media/ubuntu/WD160/pi/rtkernel
 
 # ignore make modules - as that is run by make, j4 for 4 cores
 make -j4
 make modules_install
 
+For Pi 2
+don't use the modprobe trick to get the running kernel config, instead do
+make bcm2709_defconfig
+make menuconfig 
+to create a good .config file
+NOTE: the kernel file name (and /lib/modules/ dir) will have a -v7 to denote the arm7 processor - at the end
 
 TESTING RT KERNEL
 ————————
@@ -114,6 +127,9 @@ pi@raspberrypi:~/rt-tests $ uname -a
 Linux raspberrypi 4.1.21-rt23 #1 PREEMPT RT Sat Apr 23 05:23:34 UTC 2016 armv6l GNU/Linux
 
 T: 0 (  784) P:80 I:500 C:  54350 Min:     20 Act:   45 Avg:   38 Max:      98
+
+NOTE: v2 uname will be 
+Linux raspberrypi 4.1.21-rt23-v7 #2 SMP PREEMPT RT Mon May 2 19:05:04 UTC 2016 armv7l GNU/Linux
 
 pi@raspberrypi:~/rt-tests $ ./runtest.sh ## with ping and cat>/devnull bombardment
 # /dev/cpu_dma_latency set to 0us
@@ -148,18 +164,11 @@ upgrade from PI Model B -> Pi 3
 on old machine run:
 sudo apt-get update
 sudo apt-get dist-upgrade
-
-before unmet = 4.1.19+ #858; after uname = SAME
-
-Hmm - DIDN’T WORK
-
 —
 Note: to setup wireless on PI 3
 sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
 ifconfig wlan0 	       # to test
 -
-Going to Pi2 worked fine. Just needed to switch to connect to 192.168.2.4 - no idea why 
-
 
 ############################
 WHICH VERSION PI DO YOU HAVE
@@ -348,8 +357,6 @@ git checkout <file> # to discard my local copy and use that from the repo
 #######
  TO DO
 #######
-
-upgrade 2 to rt kernel
 
 
 
