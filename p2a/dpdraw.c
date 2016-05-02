@@ -35,6 +35,15 @@ typedef struct {
 #define CTS_PIN 20 // RPI_V2_GPIO_P1_38
 #define DR_PIN 21 // RPI_V2_GPIO_P1_40
 
+uint32_t mapPayload(uint32_t payload) {
+    uint32_t mappedPayload = 0;
+
+    mappedPayload = payload; // THIS IS WRONG!!!
+
+    return mappedPayload;
+}
+
+
 void writeTransfer(uint32_t payload) {
     /*
     Controller sets CTS HIGH  (Player must wait until CTS HIGH before each transfer)
@@ -43,8 +52,10 @@ void writeTransfer(uint32_t payload) {
     Controller sets CTS LOW
     Player brings DR LOW (after waiting for CTS LOW)
     */
+
+    uint32_t mappedPayload = mapPayload(payload);
     
-    // Set the CTS pin to be an output
+    // Set the CTS pin to be an input
     bcm2835_gpio_fsel(CTS_PIN, BCM2835_GPIO_FSEL_INPT);
     // Enable high level Detection for CTS
     bcm2835_gpio_hen(CTS_PIN);
@@ -111,6 +122,7 @@ void writeCommand(DPPaintToPoint d){
 
     payload = (header << 12) | d.x;
     printf("TX: %.2X %.2X %.2X %.2X\n", (payload&0xff000000)>>24,(payload&0xff0000)>>16,(payload&0xff00)>>8,payload&0xff); 
+
     writeTransfer(payload);
 
     payload = 0;
@@ -146,12 +158,15 @@ int main(int argc, char *argv[]) {
     if(!bcm2835_init())
         return 1;
 
-    // when sorted ... 
-    DrawFrame();
-    //
-    // but start with one line 
+    // example for one line once
     //writeCommand((DPPaintToPoint) {0,0,{0,0,0}}); // white
     //writeCommand((DPPaintToPoint) {MAX_X,MAX_Y,{0xFF,0xFF,0xFF}}); // black
+    // when sorted ... 
+
+    while (1) {
+        DrawFrame();
+	delay(1); // 1ms
+    }
 
     return 0;
 }
