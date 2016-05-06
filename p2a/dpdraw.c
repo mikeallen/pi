@@ -69,13 +69,10 @@ void writeTransfer(uint32_t payload) {
     // busy wait on CTS event (in this case going HIGH)
     //
     // printf("WAITING ON CTS TO GO HIGH...\n");
-    while(1) {
-            if (bcm2835_gpio_eds(CTS_PIN))
-                // Now clear the eds flag by setting it to 1
-                bcm2835_gpio_set_eds(CTS_PIN);
-            // wait a tiny bit ?
-            delay(500);
-    }   
+//    while(!bcm2835_gpio_eds(CTS_PIN));
+    // Now clear the eds flag by setting it to 1
+//    bcm2835_gpio_set_eds(CTS_PIN);
+
     // printf("CTS RAISED - NOW I WRITE DATA AND THEN PUT DR HIGH, THEN WAIT FOR CTS DROP\n");
     // Set the DR pin to be an output
     bcm2835_gpio_fsel(DR_PIN, BCM2835_GPIO_FSEL_OUTP);
@@ -93,15 +90,12 @@ void writeTransfer(uint32_t payload) {
 
     // busy wait on CTS event (in this case going LOW)
     //
-    while(1) {
-            if (bcm2835_gpio_eds(CTS_PIN))
-                // Now clear the eds flag by setting it to 1
-                bcm2835_gpio_set_eds(CTS_PIN);
+//    while(!bcm2835_gpio_eds(CTS_PIN));
+    // Now clear the eds flag by setting it to 1
+//    bcm2835_gpio_set_eds(CTS_PIN);
             // wait a tiny bit ?
-            delay(500); // in ms, could use bcm2835_delayMicroseconds(i)   
+            //delay(500); // in ms, could use bcm2835_delayMicroseconds(i)   
 
-    }   
-    
     // printf("CTS DROPPED - NOW I CAN PUT DR LOW AGAIN, THIS TXFR IS DONE\n");
     //
     // set DR PIN low
@@ -160,11 +154,13 @@ int main(int argc, char *argv[]) {
 
     // example for one line once
     //writeCommand((DPPaintToPoint) {0,0,{0,0,0}}); // white
-    //writeCommand((DPPaintToPoint) {MAX_X,MAX_Y,{0xFF,0xFF,0xFF}}); // black
+    // writeCommand((DPPaintToPoint) {MAX_X,MAX_Y,{0xFF,0xFF,0xFF}}); // black
     // when sorted ... 
 
     while (1) {
-        DrawFrame();
+//        DrawFrame();
+        writeCommand((DPPaintToPoint) {0,0,{0,0,0}}); // white
+    	writeCommand((DPPaintToPoint) {MAX_X,MAX_Y,{0xFF,0xFF,0xFF}}); // black
 	delay(1); // 1ms
     }
 

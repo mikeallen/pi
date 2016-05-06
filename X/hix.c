@@ -24,7 +24,8 @@ typedef struct {
 void DrawFrame (Display *d, Window w, GC gc, Colormap c) {
 
 	Font ft;
-	ft = XLoadFont(d,"9x15");
+	//ft = XLoadFont(d,"9x15");
+	ft = XLoadFont(d,"6x13");
 
 	int blackColor  = BlackPixel(d,DefaultScreen(d));
 	int whiteColor  = WhitePixel(d,DefaultScreen(d));
