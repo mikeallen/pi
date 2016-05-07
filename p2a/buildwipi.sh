@@ -1,3 +1,2 @@
 #!/bin/bash
-#gcc -Wall -o wipi wipi.c -lwiringPi
-gcc -Wall -o wipi wipi.c
+gcc -Wall -o /tmp/wipi wipi.c -lwiringPi
