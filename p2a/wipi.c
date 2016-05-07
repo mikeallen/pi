@@ -1,8 +1,7 @@
-//#include <wiringPi.h>
-#include "wiringPi.h"
+#include <wiringPi.h>
 #include <stdio.h>
-#include <string.h>     /* strcat */
 #include <stdint.h>
+#include <stdlib.h>
 //#include "DisplayProcessor.h"
 
 typedef struct {
@@ -20,8 +19,8 @@ typedef struct {
     DPPaintToPoint points[100]; // should use [] - but would need to change my code to malloc ... so set an arbitrary max of 100 
 } Frame;
 
-#define CTS_PIN 24 // CTS pin 38 on Pi Board
-#define DR_PIN 25 // DR pin 40 on Pi 2 Board
+#define CTS_PIN 28	// CTS pin 
+#define DR_PIN 27	// DR pin 
 
 #define BYTETOBINARYPATTERN "%d%d%d%d%d%d%d%d"
 #define BYTETOBINARY(byte)  \
@@ -34,21 +33,73 @@ typedef struct {
    (byte & 0x02 ? 1 : 0), \
    (byte & 0x01 ? 1 : 0) 
 
-void setDataPins(uint32_t payload) {
-    printf("payload: %.2X %.2X %.2X %.2X\n", (payload&0xff000000)>>24,(payload&0xff0000)>>16,(payload&0xff00)>>8,payload&0xff); 
-    printf("payload: "BYTETOBINARYPATTERN" "BYTETOBINARYPATTERN" "BYTETOBINARYPATTERN" "BYTETOBINARYPATTERN"\n", BYTETOBINARY((payload&0xff000000)>>24),BYTETOBINARY((payload&0xff0000)>>16),BYTETOBINARY((payload&0xff00)>>8),BYTETOBINARY(payload&0xff)); 
 
-    digitalWrite (0,(payload & 0x01 ? 1 : 0));
-    digitalWrite (1,(payload & 0x02 ? 1 : 0));
-    digitalWrite (2,(payload & 0x04 ? 1 : 0));
-    digitalWrite (3,(payload & 0x08 ? 1 : 0));
 
-    sleep(1); // 1s
+
+uint32_t BitPosToPinTable[] =
+{
+	8,			// b0
+	9,			// b1
+	7,			// b2
+	0,			// b3
+	2,			// b4
+	3,			// b5
+	30,			// b6
+	21,			// b7
+
+	15,			// b8
+	16,			// b9
+	1,			// b10
+	4,			// b11
+	5,			// b12
+	6,			// b13
+	31,			// b14
+	26,			// b15
+	
+	22,			// b16
+	23,			// b17
+	24,			// b18	
+	25,			// b19
+};
+
+#define NumBits 20
+
+inline uint32_t BitPosToPin(uint32_t bitPos)
+{
+    if (bitPos < NumBits) {
+        return BitPosToPinTable[bitPos];
+    }
+    else {
+        printf("BitPosToPin: illegal value %d\n", bitPos);
+        exit(1);
+		return 0;
+    }
 }
+
+
+void setDataPins(uint32_t payload) {
+    int i;
+
+    //printf("payload: %.2X %.2X %.2X %.2X\n", (payload&0xff000000)>>24,(payload&0xff0000)>>16,(payload&0xff00)>>8,payload&0xff); 
+    //printf("payload: "BYTETOBINARYPATTERN" "BYTETOBINARYPATTERN" "BYTETOBINARYPATTERN" "BYTETOBINARYPATTERN"\n", BYTETOBINARY((payload&0xff000000)>>24),BYTETOBINARY((payload&0xff0000)>>16),BYTETOBINARY((payload&0xff00)>>8),BYTETOBINARY(payload&0xff)); 
+	/*
+    for (i = 0; i < 2; i++) {
+        digitalWrite(i, (payload & (1 << i)) != 0);
+    }
+	*/
+
+    for (i = 0; i < NumBits; i++)
+    {
+        digitalWrite(BitPosToPin(i), (payload & (1 << i)) != 0);
+    }
+    //sleep(1); // 1s
+}
+
 
 void writeTransfer(uint32_t payload) {
     (void) setDataPins(payload);
 }
+
 
 void writeTransfer2(uint32_t payload) {
     /*
@@ -106,51 +157,47 @@ void writeCommand(DPPaintToPoint d){
     writeTransfer(payload);
 }
 
+
 void setupPins() {
+    int i;
 
-    wiringPiSetup () ;
-    // 20 Data Pins
-    pinMode (0, OUTPUT) ;
-    pinMode (1, OUTPUT) ;
-    pinMode (2, OUTPUT) ;
-    pinMode (3, OUTPUT) ;
-    pinMode (4, OUTPUT) ;
-    pinMode (5, OUTPUT) ;
-    pinMode (6, OUTPUT) ;
-    pinMode (7, OUTPUT) ;
-    pinMode (8, OUTPUT) ;
-    pinMode (9, OUTPUT) ;
-//RESERVED 10 //RPI_V2_GPIO_P1_24, CE0 when SPI0 in use
-    pinMode (11, OUTPUT) ;
-//RESERVED 12 //RPI_V2_GPIO_P1_19, MOSI when SPI0 in use
-//RESERVED 13 //RPI_V2_GPIO_P1_21, MISO when SPI0 in use
-//RESERVED 14 //RPI_V2_GPIO_P1_23, CLK when SPI0 in use
-    pinMode (15, OUTPUT) ;
-    pinMode (16, OUTPUT) ;
-    pinMode (17, OUTPUT) ;
-    pinMode (18, OUTPUT) ;
-    pinMode (19, OUTPUT) ;
-    pinMode (20, OUTPUT) ;
-    pinMode (21, OUTPUT) ;
-    pinMode (22, OUTPUT) ;
-    pinMode (23, OUTPUT) ;
+    for (i = 0; i < NumBits; i++)
+    {
+        pinMode(BitPosToPin(i), OUTPUT);
+    }
 
-    pinMode (24, INPUT) ; // CTS pin 38 on Pi Board
-    pinMode (25, OUTPUT) ; // DR pin 40 on Pi 2 Board
+    pinMode(CTS_PIN, INPUT); 
+    pinMode(DR_PIN, OUTPUT); 
+
 }
+
 
 int main(int argc, char *argv[]) {
 
+/*
+    if (argc != 2) {
+        printf("Usage: wipi pin_no\n");
+        return(1);
+    }
+    int pin = atoi(argv[1]);
+    //setupPins();
+    wiringPiSetup();
+    pinMode(pin, OUTPUT);
+	*/
+
+    wiringPiSetup();
     setupPins();
 
     while (1) {
         // example for one line once
         //writeCommand((DPPaintToPoint) {0,0,{0,0,0}}); // white
         //writeCommand((DPPaintToPoint) {MAX_X,MAX_Y,{0xFF,0xFF,0xFF}}); // black
-        writeTransfer(0xFFFFFFFF);
-	delay(1); // 1ms
-        writeTransfer(0x0);
-	delay(1); // 1ms
+        writeTransfer(0xF7A5B);
+        //digitalWrite(pin, 1);
+		delay(1); // 1ms
+        // writeTransfer(0x0);
+        //digitalWrite(pin, 0);
+        //delay(1); // 1ms
     }
 
     return 0 ;
